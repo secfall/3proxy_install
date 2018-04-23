@@ -96,12 +96,13 @@ case $DNS in
 	;;
 	esac
 	echo 'nscache 65536
+	
+users secfall:CL:secfall
 
 timeouts 1 5 30 60 180 1800 15 60
 
 log /dev/null
 
-auth strong
 
 #Binding address' >> /opt/3proxy/3proxy.cfg
 			echo "external $IP" >> /opt/3proxy/3proxy.cfg
