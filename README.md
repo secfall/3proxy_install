@@ -11,7 +11,7 @@
 
 <b>2. УСТАНОВКА OpenVPN</b><br>
 Зайти в консоль по SSH. В консоли запустить команду <br><br>
-<i>wget 3proxy_install/3proxy_install.sh && bash 3proxy_install.sh</i><br><br>
+<i>wget https://github.com/secfall/3proxy_install/blob/master/3proxy_install.sh && bash 3proxy_install.sh</i><br><br>
 Следовать инструкциям, появляющимся в процессе выполнения скрипта.
 
 Поддержка от SecFAll.com https://secfall.com/category/zadat-vopros/
