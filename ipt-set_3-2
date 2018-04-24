@@ -1,0 +1,60 @@
+#!/bin/sh
+IF_EXT="venet0"
+IF_OVPN="tun0"
+OVPN_PORT="443"
+IPT="/sbin/iptables"
+IPT6="/sbin/ip6tables"
+# flush
+$IPT --flush
+$IPT -t nat --flush
+$IPT -t mangle --flush
+$IPT -X
+$IPT6 --flush
+# loopback
+$IPT -A INPUT -i lo -j ACCEPT
+$IPT -A OUTPUT -o lo -j ACCEPT
+# default
+$IPT -P INPUT DROP
+$IPT -P OUTPUT DROP
+$IPT -P FORWARD DROP
+$IPT6 -P INPUT DROP
+$IPT6 -P OUTPUT DROP
+$IPT6 -P FORWARD DROP
+# allow forwarding
+echo 1 > /proc/sys/net/ipv4/ip_forward
+echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
+echo 1 > /proc/sys/net/ipv6/conf/default/forwarding
+echo 1 > /proc/sys/net/ipv6/conf/all/proxy_ndp
+# NAT
+# #########################################
+# SNAT - local users to out internet
+$IPT -t nat -A POSTROUTING -o $IF_EXT -j MASQUERADE
+# INPUT chain
+# #########################################
+$IPT -A INPUT -p tcp ! --syn -m state --state NEW -j DROP
+$IPT -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+$IPT6 -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+# ssh
+$IPT -A INPUT -i $IF_EXT -p tcp --dport 22 -j ACCEPT
+# VPN
+$IPT -A INPUT -i $IF_OVPN -p icmp -s 10.8.224.0/21 -j ACCEPT
+$IPT6 -A INPUT -i $IF_OVPN -p icmp -s 2a04:dd00:9:b::/64 -j ACCEPT
+# DNS
+$IPT -A INPUT -i $IF_OVPN -p udp --dport 53 -s 10.8.224.0/21 -j ACCEPT
+$IPT6 -A INPUT -i $IF_OVPN -p udp --dport 53 -s 2a04:dd00:9:b::/64 -j ACCEPT
+# openvpn
+$IPT -A INPUT -i $IF_EXT -p tcp --dport $OVPN_PORT -j ACCEPT
+# 3proxy 
+$IPT -A INPUT -i $IF_EXT -p tcp --dport $PROXI_PORT -j ACCEPT 
+$IPT -A INPUT -i $IF_EXT -p udp --dport $PROXI_PORT -j ACCEPT
+
+# FORWARD chain
+# #########################################
+$IPT -A FORWARD -i $IF_OVPN -o $IF_EXT -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+$IPT -A FORWARD -i $IF_EXT -o $IF_OVPN -m state --state ESTABLISHED,RELATED -j ACCEPT
+$IPT6 -A FORWARD -i $IF_OVPN -o $IF_EXT -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+$IPT6 -A FORWARD -i $IF_EXT -o $IF_OVPN -m state --state ESTABLISHED,RELATED -j ACCEPT
+# OUTPUT chain
+# #########################################
+$IPT -A OUTPUT -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+$IPT6 -A OUTPUT -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
